@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Sensitive credentials
+serverInfo.json
+
+# OS files
+Thumbs.db
+.DS_Store

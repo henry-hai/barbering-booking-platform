@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Henry Hai's Barbershop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Archivo+Narrow:400,400i,700,700i" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- React Initialization Scripts -->
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>           <!-- React Core Library -->
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>   <!-- React DOM Library -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>                         <!-- Babel for JSX to JavaScript Conversion -->
+
+    <!-- Email JS Initializtion Script -->
+    <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init('_z_xS9r4pjxPzvOKs'); 
+        })();
+    </script>
+    
+</head>
+
+<body class="bg-gray-100 font-sans leading-relaxed text-gray-800 pt-16">
+
+    <!-- React Navbar Mount Point -->
+    <div id="navbar-root"></div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="relative bg-cover bg-center h-screen" style="background-image: url('img/BW_BARBERSHOP_4.jpg');">
+        <div class="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <h1 class="text-white text-4xl font-bold">Welcome!</h1>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 bg-gray-100">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-center px-6 text-center md:text-left">
+            <img src="img/intro_portrait.jpg" class="w-3/4 sm:w-2/3 md:w-1/4 rounded-lg shadow-lg mb-8 md:mb-0" alt="About Image">
+            <!-- <img src="img/smallLogo" class="w-full md:w-1/2 rounded-lg shadow-lg" alt="About Image"> -->
+            <div class="md:ml-8">
+                <h2 class="text-3xl font-bold mb-4">About</h2>
+                <p class="text-gray-700">Hi, I’m Henry!<br> 
+                    I started this barbershop back in 2013 & have been<br> 
+                    dedicated to creating personalized, luxury haircut experiences ever since.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="py-16 bg-white">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row md:justify-between items-center">
+            <!-- Services Content -->
+            <div class="md:w-2/3 bg-white shadow-md p-8">
+                <h2 class="text-3xl font-bold text-center mb-8">Services</h2>
+                <ul class="space-y-4 text-lg">
+                    <li class="flex justify-between items-center">
+                        <span>Haircut: Clipper Cut</span>
+                        <span>$35</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Haircut: Clipper + Scissor Cut</span>
+                        <span>$40</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Goatee & Mustache</span>
+                        <span>+ $5</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Goatee, Mustache, & Beard</span>
+                        <span>+ $10</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Eyebrows (Straight Razor)</span>
+                        <span>+ $5</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Design</span>
+                        <span>+ $5-10</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Lineup: Hairline + Nape</span>
+                        <span>$15</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Lineup: Full Service + Beard</span>
+                        <span>$20</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Braids</span>
+                        <span>$20</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Threaded Eyebrows</span>
+                        <span>$15</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>Housecall</span>
+                        <span>$100 + Add-On Prices</span>
+                    </li>
+                </ul>
+                <p class="mt-4 text-gray-500 text-sm">* Add-On Prices are denoted with '+' & can only be added to Haircuts, Line-Up Services are A LA CARTE ONLY &#40;Haircut Services incl. Line-Ups&#41; *</p>
+            </div>
+
+            <!-- Image on the Right -->
+            <div class="hidden md:block md:mt-0 md:w-1/3 md:ml-8">
+                <img src="img/4_KSG_1.JPG" alt="Service Image" class="w-full rounded-lg shadow-lg object-cover">
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-8">Gallery</h2>
+            <!-- (4:5 Aspect Ratio Photos) -->
+            <div class="relative flex items-center mb-8">
+                <button class="absolute left-0 bg-gray-800 text-white px-4 py-2 rounded-full" onclick="scrollGalleryLeft1()">&larr;</button>
+                <div id="photo-container" class="flex overflow-x-auto space-x-4 px-12 scroll-smooth">
+
+                    <img src="img/1_Murthi_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/2_Murthi_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/3_Jason_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/4_KSG_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/6_Alex_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+
+                    <img src="img/5_KSG_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/7_Alex_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/8_Adrian_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/9_Adrian_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/10_Adrian_3.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+
+                    <img src="img/11_Elijah_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/12_Elijah_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/13_Jason_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/14_Chester_1.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                    <img src="img/15_Chester_2.JPG" class="w-56 h-[70px] object-cover rounded-lg shadow-lg">
+                </div>
+                <button class="absolute right-0 bg-gray-800 text-white px-4 py-2 rounded-full" onclick="scrollGalleryRight1()">&rarr;</button>
+            </div>
+            <!-- (1:1 Aspect Ratio Photos)-->
+            <div class="relative flex items-center">
+                <button class="absolute left-0 bg-gray-800 text-white px-4 py-2 rounded-full" onclick="scrollGalleryLeft2()">&larr;</button>
+                <div id="photo-container-2" class="flex overflow-x-auto space-x-4 px-12 scroll-smooth">
+                    <img src="img/19_Cam_1.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/20_Cam_2.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/25_Andrew_1.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/26_Hoang_1.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/27_JD_1.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/28_JD_2.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/29_Dev_1.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/30_Dev_2.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/21_RR_1.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/22_RR_2.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/23_RR_3.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/24_RR_4.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg"> 
+                    <img src="img/16_Ben_1.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/17_Ben_2.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/18_Ben_3.JPG" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/31_Hoang_2.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/32_Hoang_3.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/33_Hoang_4.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                    <img src="img/34_Hoang_5.jpg" class="w-56 h-56 object-cover rounded-lg shadow-lg">
+                </div>
+                <button class="absolute right-0 bg-gray-800 text-white px-4 py-2 rounded-full" onclick="scrollGalleryRight2()">&rarr;</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Locations Section -->
+    <section id="locations" class="py-16 bg-gray-100">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-8">Locations</h2>
+            <div class="flex flex-wrap -mx-4">
+                <!-- Location 1 -->
+                <div class="md:w-1/2 px-4 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-lg flex items-center">
+                        <img src="img/13_Jason_2.JPG" class="w-1/3 sm:w-1/4 rounded-lg shadow-md mr-4" alt="Irvine">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Irvine</h3>
+                            <p class="text-gray-700">71000 Verano Rd, Irvine, CA 92617</p>
+                            <p class="text-gray-700">Phone: 408-858-707</p>
+                            <h4 class="mt-4 font-bold text-lg">*Seasonal Hours*</h4>
+                            <ul class="text-gray-600">
+                                <li>Mon - Fri: TBD</li>
+                                <li>Sat: TBD</li>
+                                <li>Sun: TBD</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- Location 2 -->
+                <div class="md:w-1/2 px-4 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-lg flex items-center">
+                        <img src="img/8_Adrian_1.JPG" class="w-1/3 sm:w-1/4 rounded-lg shadow-md mr-4" alt="Milpitas">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Milpitas</h3>
+                            <p class="text-gray-700"> Kennedy Dr, Milpitas, CA 95035</p>
+                            <p class="text-gray-700">Phone: 408-858-707</p>
+                            <h4 class="mt-4 font-bold text-lg">*Seasonal Hours*</h4>
+                            <ul class="text-gray-600">
+                                <li>Mon - Fri: TBD</li>
+                                <li>Sat: TBD</li>
+                                <li>Sun: TBD</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+
+    <!-- Appointment Section -->
+    <section id="appointment" class="py-16 bg-gray-100">
+        <div class="container mx-auto flex flex-col md:flex-row md:space-x-8 px-6">
+            <div class="md:w-1/3 bg-white p-6 rounded-lg shadow-md mb-8 md:mb-0">
+                <h2 class="text-2xl font-bold mb-4">Booking Policies</h2>
+                <p class="text-gray-600">Please read and accept my booking policies before making an appointment.</p>
+                <ul class="list-disc list-inside text-gray-600 mt-4">
+                    <li>24-hour cancellation notice required.</li>
+                    <li>Late arrivals may need to reschedule.</li>
+                    <li>Being > 15 minutes late will result in a 15$ fee & the appointment may be cancelled.</li>
+                    <li>Being late by ≥ 15min, 3 times will result in a temporary 100-day suspension.</li>
+                    <li>Please wash hair thoroughly before for best results.</li>
+                    <li>Remove all upper cartilage earrings if applicable.</li>
+                </ul>
+            </div>
+            <div class="md:w-2/3 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Book an Appointment</h2>
+                <form id="appointment-form">
+                    <div class="mb-4">
+                        <label for="name" class="block text-gray-600 mb-1">Name</label>
+                        <input type="text" id="name" name="name" required class="w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                    <div class="mb-4">
+                        <label for="phone" class="block text-gray-600 mb-1">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" required class="w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+                    <!-- Preferred Date 1 with Availability Paragraph -->
+                    <div class="mb-4">
+                        <label for="date1" class="block text-gray-600 mb-1">Preferred Date 1</label>
+                        <input type="date" id="date1" name="date1" required class="w-full p-2 border border-gray-300 rounded-md">
+                        <label for="availability1" class="block text-gray-600 mt-2">Availability</label>
+                        <textarea id="availability1" name="availability1" required class="w-full p-2 border border-gray-300 rounded-md" placeholder="Please describe your availability"></textarea>
+                    </div>
+                    <!-- Optional Preferred Date 2 -->
+                    <div class="mb-4">
+                        <label for="date2" class="block text-gray-600 mb-1">Preferred Date 2 (Optional)</label>
+                        <input type="date" id="date2" name="date2" class="w-full p-2 border border-gray-300 rounded-md">
+                        <label for="availability2" class="block text-gray-600 mt-2">Availability</label>
+                        <textarea id="availability2" name="availability2" class="w-full p-2 border border-gray-300 rounded-md" placeholder="Please describe your availability"></textarea>
+                    </div>
+                    <!-- Optional Preferred Date 3 -->
+                    <div class="mb-4">
+                        <label for="date3" class="block text-gray-600 mb-1">Preferred Date 3 (Optional)</label>
+                        <input type="date" id="date3" name="date3" class="w-full p-2 border border-gray-300 rounded-md">
+                        <label for="availability3" class="block text-gray-600 mt-2">Availability</label>
+                        <textarea id="availability3" name="availability3" class="w-full p-2 border border-gray-300 rounded-md" placeholder="Please describe your availability"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="description" class="block text-gray-600 mb-1">Description of Haircut / Other Comments</label>
+                        <textarea id="description" name="description" required class="w-full p-2 border border-gray-300 rounded-md"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" required class="form-checkbox text-gray-600">
+                            <span class="ml-2 text-gray-600">I accept the booking policies</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="text-white px-4 py-2 rounded-md" style="background-color: #00b9ff; transition: background-color 0.3s;" onmouseover="this.style.backgroundColor='#009ed9'" onmouseout="this.style.backgroundColor='#00b9ff'">Submit</button>
+
+                </form>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto text-center">
+            <p class="text-sm">&copy; 2024 Henry Hai's Barbershop. All rights reserved.</p>
+            <div class="mt-4 flex justify-center space-x-4">
+                <a href="https://www.instagram.com/henryhai_" target="_blank" class="hover:text-blue-500">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://www.linkedin.com/notifications/?filter=all" target="_blank" class="hover:text-blue-500">
+                    <i class="fab fa-linkedin"></i>
+                </a>
+            </div>            
+        </div>
+    </footer>
+
+    <!-- Webpack-bundled TypeScript Gallery Scrolling -->
+    <script src="dist/bundle.js"></script>
+
+    
+    <!-- JS Function for Form Submission -->
+    <script>
+        function submitAppointmentForm(event) {
+            // Prevent default form submission
+            event.preventDefault();
+
+            // Get form fields
+            var name = document.getElementById('name').value.trim();
+            var phone = document.getElementById('phone').value.trim();
+            var date1 = document.getElementById('date1').value.trim();
+            var availability1 = document.getElementById('availability1').value.trim();
+            var date2 = document.getElementById('date2').value.trim();
+            var availability2 = document.getElementById('availability2').value.trim();
+            var date3 = document.getElementById('date3').value.trim();
+            var availability3 = document.getElementById('availability3').value.trim();
+            var description = document.getElementById('description').value.trim();
+            var policiesAccepted = document.querySelector('input[type="checkbox"]').checked;
+
+            // Track missing fields
+            var missingFields = [];
+
+            if (!name) missingFields.push("Name");
+            if (!phone) missingFields.push("Phone Number");
+            if (!date1) missingFields.push("Preferred Date 1");
+            if (!availability1) missingFields.push("Availability");
+            if (!description) missingFields.push("Description of Haircut / Other Comments");
+            if (!policiesAccepted) missingFields.push("Accepting the booking policies");
+
+            // Show error if any fields are missing
+            if (missingFields.length > 0) {
+                alert("Please fill out the following required fields:\n- " + missingFields.join("\n- "));
+                return; // Prevent form submission
+            }
+
+            // Prepare the template parameters
+            var templateParams = {
+                name: name,
+                phone: phone,
+                date1: date1,
+                availability1: availability1,
+                date2: date2 || "N/A",
+                availability2: availability2 || "N/A",
+                date3: date3 || "N/A",
+                availability3: availability3 || "N/A",
+                description: description
+            };
+
+            // Send the email
+            emailjs.send('service_2k9xp7s', 'contact_form', templateParams)
+                .then(function(response) {
+                    alert('Thank you, ' + name + '! Your appointment request has been received.');
+                    document.getElementById('appointment-form').reset(); // Clear the form
+                }, function(error) {
+                    alert('Oops! Something went wrong. Please try again.');
+                });
+        }
+
+        // Attach the event listener
+        document.getElementById('appointment-form').addEventListener('submit', submitAppointmentForm);
+    </script>    
+
+    <!-- React Navbar Component -->
+    <script type="text/babel">
+
+        // Define the Navbar as a Class Component to manage State
+        class Navbar extends React.Component {
+            
+            // Initialize the state object
+            constructor(props) {
+                super(props);               // Call the constructor of the parent class (React.Component)
+                this.state = {
+                    isMenuOpen: false       // Initialize the state object with false, mobile menu is closed by default
+                };
+            }
+
+            // Toggle Method for Mobile Menu
+            toggleMobileMenu = () => {
+                this.setState({ isMenuOpen: !this.state.isMenuOpen });   // Flip the value of isMenuOpen
+            }
+
+            // Render method to generate JSX code for ReactDOM
+            render() {
+                return (
+                    /* Renamed class attribute (JS reserved keyword) to className */
+                    <header className="bg-white fixed top-0 left-0 right-0 z-50 shadow-md py-4">
+                        <div className="container mx-auto flex justify-between items-center px-6">
+                            
+                            {/* Logo */}
+                            <a href="#" className="flex items-center">
+                                {/* Changed self closing tags to explicity close with a forward slash / */}
+                                <img src="img/smallLogo.JPG" alt="Barber Logo" className="h-12 inline" />
+                            </a>
+                            
+                            {/* Hamburger Icon for Mobile */}
+                            {/* Event handlers renamed using camelCase (onClick) */}
+                            {/* onClick is bound to the React class method instead of global JS */}
+                            <button id="hamburger" className="text-3xl md:hidden block focus:outline-none" onClick={this.toggleMobileMenu}>
+                                &#9776;
+                            </button>
+                            
+                            {/* Navigation Menu for Desktop */}
+                            <nav className="hidden md:flex md:items-center md:space-x-8 text-gray-700 text-lg font-semibold">
+                                <ul className="flex space-x-8">
+                                    <li><a href="#about" className="hover:text-black">About</a></li>
+                                    <li><a href="#services" className="hover:text-black">Services</a></li>
+                                    <li><a href="#gallery" className="hover:text-black">Gallery</a></li>
+                                    <li><a href="#locations" className="hover:text-black">Locations</a></li>
+                                    <li>
+                                        {/* Inline styles formatted as JS objects */}
+                                        <a href="#appointment" className="text-white px-4 py-2 rounded-md whitespace-nowrap" 
+                                            style={{ backgroundColor: '#00b9ff', transition: 'background-color 0.3s' }} 
+                                            onMouseOver={(e) => e.target.style.backgroundColor='#009ed9'} 
+                                            onMouseOut={(e) => e.target.style.backgroundColor='#00b9ff'}>
+                                            Book An Appointment
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                        
+                        {/* Mobile Dropdown Menu */}
+                        {/* Uses template literals (backticks) to inject JS logic into the className string.
+                            A ternary operator checks the boolean value of this.state.isMenuOpen:
+                            - If true (?): injects an empty string (menu remains visible).
+                            - If false (:): injects Tailwind's 'hidden' class to apply display:none.
+                        */}
+                        <div id="mobileMenu" className={`bg-white text-center py-4 shadow-md md:hidden 
+                                                      ${this.state.isMenuOpen ? '' : 'hidden'}`}>
+                            <a href="#about" className="block py-2 text-gray-700 hover:bg-gray-200">About</a>
+                            <a href="#services" className="block py-2 text-gray-700 hover:bg-gray-200">Services</a>
+                            <a href="#gallery" className="block py-2 text-gray-700 hover:bg-gray-200">Gallery</a>
+                            <a href="#locations" className="block py-2 text-gray-700 hover:bg-gray-200">Locations</a>
+                            <a href="#appointment" className="block py-2 text-white rounded-md mx-4" 
+                                style={{ backgroundColor: '#00b9ff', transition: 'background-color 0.3s' }} 
+                                onMouseOver={(e) => e.target.style.backgroundColor='#009ed9'} 
+                                onMouseOut={(e) => e.target.style.backgroundColor='#00b9ff'}>
+                                Book An Appointment
+                            </a>
+                        </div>
+                    </header>
+                );
+            }
+        }
+
+        // Render the component into the navbar-root div
+        ReactDOM.render(<Navbar />, document.getElementById('navbar-root'));
+
+    </script>
+    <!-- End of React Navbar Component -->
+
+</body>
+</html>

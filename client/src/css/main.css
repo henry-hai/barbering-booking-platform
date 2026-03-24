@@ -1,0 +1,64 @@
+/* Outer grid: fills the entire browser window. Three columns, two rows. */
+.appContainer {
+    display: grid;
+    grid-template-columns: 150px 1fr 240px;
+    grid-template-rows: 50px 1fr;
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  /* Toolbar spans all three columns in the first row. */
+  .toolbar {
+    grid-column: 1 / 4;
+    grid-row: 1 / 1;
+    border-bottom: 1px solid #e0e0e0;
+    padding-top: 8px;
+    padding-left: 4px;
+  }
+  
+  /* Mailbox list occupies the first column in the second row. */
+  .mailboxList {
+    grid-column: 1 / 1;
+    grid-row: 2 / 2;
+    border-right: 1px solid #e0e0e0;
+    padding-top: 6px;
+    padding-left: 4px;
+    overflow: auto;
+  }
+  
+  /* Center area is a nested grid with two rows: message list on top, view below. */
+  .centerArea {
+    display: grid;
+    grid-template-rows: 200px 1fr;
+  }
+  
+  /* Message list occupies the first row of the center sub-grid. */
+  .messageList {
+    border-bottom: 1px solid #e0e0e0;
+    grid-row: 1 / 1;
+    overflow: auto;
+  }
+  
+  /* View area occupies the second row of the center sub-grid. */
+  .centerViews {
+    grid-row: 2 / 2;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    overflow: auto;
+  }
+  
+  /* Contact list occupies the third column in the second row. */
+  .contactList {
+    grid-column: 3 / 3;
+    grid-row: 2 / 2;
+    border-left: 1px solid #e0e0e0;
+    padding-top: 4px;
+    padding-left: 4px;
+    overflow: auto;
+  }
+  
+  /* Forces readable black text on disabled InputBase fields. */
+  .messageInfoField {
+    color: #000000 !important;
+  }
