@@ -2,6 +2,13 @@
 
 A full-stack barbering booking platform serving 300+ clients, built with React, Node.js, Express, TypeScript, and Webpack. The public site handles appointment requests through EmailJS, with Zapier automations for structured logging and downstream workflows. A separate Express API powers a React mail client using Gmail over SMTP/IMAP.
 
+## Live static site
+
+The customer-facing barbering site is deployed with **GitHub Pages** from a dedicated static repo:
+
+- **Live site:** [henry-hai.github.io/barber_website/](https://henry-hai.github.io/barber_website/)
+- **Source repo:** [github.com/henry-hai/barber_website](https://github.com/henry-hai/barber_website)
+
 ## Architecture
 
 ```
