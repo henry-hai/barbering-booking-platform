@@ -1,6 +1,8 @@
 # Barbering Booking Platform
 
 A full-stack barbering booking platform serving 300+ clients, built with React, Node.js, Express, TypeScript, and Webpack. Features appointment scheduling with automated email confirmations via a custom SMTP microservice.
+Orginal Barbering Website Repo: https://github.com/henry-hai/barber_website
+Live Demo Website: https://henry-hai.github.io/barber_website/
 
 ## Architecture
 
@@ -143,7 +145,3 @@ barbering-booking-platform/
     ├── tsconfig.json
     └── webpack.config.js
 ```
-
-## Contact
-
-- **GitHub:** [github.com/henry-hai](https://github.com/henry-hai)
