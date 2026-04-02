@@ -1,10 +1,6 @@
 # Barbering Booking Platform
 
-A full-stack barbering booking platform serving 300+ clients, built with React, Node.js, Express, TypeScript, and Webpack. Features appointment scheduling with automated email confirmations via a custom SMTP microservice.
-
-Orginal Static Barbering Website Repo: https://github.com/henry-hai/barber_website
-
-Live Static Demo Website: https://henry-hai.github.io/barber_website/
+A full-stack barbering booking platform serving 300+ clients, built with React, Node.js, Express, TypeScript, and Webpack. The public site handles appointment requests through EmailJS, with Zapier automations for structured logging and downstream workflows. A separate Express API powers a React mail client using Gmail over SMTP/IMAP.
 
 ## Architecture
 
@@ -12,12 +8,16 @@ Live Static Demo Website: https://henry-hai.github.io/barber_website/
 Browser  -->  Static Site (index.html, Webpack bundle)
               React Navbar + TypeScript Gallery
 
+Appointment form  -->  EmailJS  -->  inbox notifications
+                      |
+                      +-->  Zapier  -->  logging / Sheets / other automations
+
 Browser  -->  React SPA (client/)  -->  Express API (server/)  -->  Gmail (SMTP/IMAP)
                                               |
                                           NeDB (contacts)
 ```
 
-**Root** -- The barbering website: responsive single-page site with a React navbar component, TypeScript gallery modules bundled by Webpack, Tailwind CSS styling, and EmailJS appointment form.
+**Root** -- The barbering website: responsive single-page site with a React navbar component, TypeScript gallery modules bundled by Webpack, Tailwind CSS styling, and an EmailJS-powered booking form. Zapier connects that flow to automated data capture and business workflows (configured in the Zapier dashboard, not in this repo).
 
 **server/** -- RESTful API built with Node.js and Express. Handles email operations via SMTP (NodeMailer) and IMAP, with an embedded NeDB database for persistent contact storage.
 
@@ -37,7 +37,8 @@ Browser  -->  React SPA (client/)  -->  Express API (server/)  -->  Gmail (SMTP/
 | NodeMailer | SMTP email sending |
 | NeDB | Embedded document database for contacts |
 | Axios | HTTP client for API communication |
-| EmailJS | Client-side appointment form email delivery |
+| EmailJS | Client-side appointment form: sends booking requests to email |
+| Zapier | Automation layer for booking-related logging and integrations |
 
 ## Getting Started
 
@@ -147,3 +148,6 @@ barbering-booking-platform/
     ├── tsconfig.json
     └── webpack.config.js
 ```
+
+
+
