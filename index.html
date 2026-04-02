@@ -20,7 +20,7 @@
     <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
     <script type="text/javascript">
         (function() {
-            emailjs.init('_z_xS9r4pjxPzvOKs'); 
+            emailjs.init('YOUR_EMAILJS_PUBLIC_KEY'); 
         })();
     </script>
     
@@ -351,7 +351,7 @@
             };
 
             // Send the email
-            emailjs.send('service_2k9xp7s', 'contact_form', templateParams)
+            emailjs.send('YOUR_EMAILJS_SERVICE_ID', 'YOUR_EMAILJS_TEMPLATE_ID', templateParams)
                 .then(function(response) {
                     alert('Thank you, ' + name + '! Your appointment request has been received.');
                     document.getElementById('appointment-form').reset(); // Clear the form
