@@ -9,8 +9,8 @@
  *
  * Doing it this way rather than teaching each reader about the environment is
  * deliberate. Appointments.ts hands the key file's path to google.auth
- * .GoogleAuth and must not change: it is the file that reads the A..K sheet
- * layout, and the whole booking pipeline is pinned to it. Materializing the
+ * .GoogleAuth and must not change: it is the file that reads and writes the
+ * A..L sheet layout, and the whole booking pipeline is pinned to it. Materializing the
  * file leaves that module identical on every host.
  *
  * An existing file always wins. A machine that already has real credentials on

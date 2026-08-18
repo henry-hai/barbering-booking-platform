@@ -12,7 +12,7 @@ const fs = require("fs");
 /* Interface describing the shape of the SMTP and IMAP config.
    Both blocks require a host (string), port (number), and auth credentials.
    The optional sheets block points the appointments dashboard at the Google
-   Sheet that the n8n Barber Log workflow appends booking requests to. */
+   Sheet the booking log lives in. */
 export interface IServerInfo {
   smtp: {
     host: string, port: number,

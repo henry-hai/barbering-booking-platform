@@ -5,7 +5,7 @@ import { config } from "./config";
 export interface IPreferredSlot { date: string, availability: string }
 
 /* A booking request as returned by the server's /appointments endpoint
-   (sourced from the Google Sheet the n8n Barber Log workflow writes to). */
+   (sourced from the Google Sheet the booking endpoint appends to). */
 export interface IBookingRequest {
   name: string,
   submittedDate: string,

@@ -78,7 +78,7 @@ app.get("/healthz", (inRequest: Request, inResponse: Response) => {
 /* POST /booking
    Public endpoint behind the appointment form on the marketing site. Validates
    every field, rate limits by IP, then sends the owner notification (which the
-   n8n Barber Log workflow parses into the Google Sheet) and a confirmation to
+   server appends to the Google Sheet) and a confirmation to
    the client. The handler is built in Booking.ts so the end-to-end tests can
    mount the same one with a recording mailer.
 
@@ -172,7 +172,7 @@ app.post("/messages", async (inRequest: Request, inResponse: Response) => {
 
 /* GET /appointments
    Returns a JSON array of booking requests from the Google Sheet that the
-   n8n Barber Log workflow writes to. Returns [] if sheets is unconfigured. */
+   booking endpoint appends to. Returns [] if sheets is unconfigured. */
 app.get("/appointments", async (inRequest: Request, inResponse: Response) => {
   try {
     const appointmentsWorker: Appointments.Worker =

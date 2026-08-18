@@ -3,8 +3,8 @@
  *
  * Offline. fetch is stubbed, so no request leaves the machine and no API key
  * is needed. What matters here is that swapping the transport changes nothing
- * a booking depends on: the subject prefix the n8n Gmail trigger filters on,
- * the sentinel-wrapped A..K block, and the reply-to that lets the owner answer
+ * a booking depends on: the subject prefix the mailbox is filed under,
+ * the sentinel-wrapped A..L block, and the reply-to that lets the owner answer
  * the client directly.
  */
 
@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IServerInfo } from "../src/ServerInfo";
 import { Worker as ResendWorker, readResendConfig } from "../src/ResendMailer";
 import { createMailer, parseBookingBlock, Worker as BookingWorker } from "../src/Booking";
-import { COLUMN_KEYS, validBooking } from "./fixtures";
+import { COLUMN_KEYS, RecordingLog, validBooking } from "./fixtures";
 
 const OWNER = "owner@example.com";
 const FROM = "Henry Hai Studio <bookings@henryhaistudio.com>";
@@ -111,7 +111,8 @@ describe("the Resend transport", () => {
 describe("a booking sent through Resend", () => {
 
   const submit = async () => {
-    const worker = new BookingWorker(serverInfo, createMailer(serverInfo, env));
+    const worker = new BookingWorker(
+      serverInfo, createMailer(serverInfo, env), new RecordingLog());
     await worker.submit(validBooking);
     return sent;
   };
@@ -120,12 +121,12 @@ describe("a booking sent through Resend", () => {
     expect(await submit()).toHaveLength(2);
   });
 
-  it("keeps the subject prefix the Gmail trigger filters on", async () => {
+  it("keeps the subject prefix the mailbox is searched by", async () => {
     const messages = await submit();
     expect(messages[0].subject).toMatch(/^Appointment Request from/);
   });
 
-  it("still carries a parseable A..K block", async () => {
+  it("still carries a parseable A..L block", async () => {
     const messages = await submit();
     const parsed = parseBookingBlock(messages[0].text);
 
@@ -133,7 +134,7 @@ describe("a booking sent through Resend", () => {
     expect(parsed.name).toBe(validBooking.name);
   });
 
-  it("sends the owner notification to the mailbox n8n polls", async () => {
+  it("sends the owner notification to the owner and the confirmation to the client", async () => {
     const messages = await submit();
     expect(messages[0].to).toEqual([OWNER]);
     expect(messages[1].to).toEqual([validBooking.email]);

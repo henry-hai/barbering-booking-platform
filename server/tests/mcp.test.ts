@@ -14,8 +14,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { IServerInfo } from "../src/ServerInfo";
 import { IBookingRequest } from "../src/Appointments";
-import { JSON_START, JSON_END, parseBookingBlock } from "../src/Booking";
-import { BookingTools, IAppointmentsReader } from "../src/mcp/BookingTools";
+import { IBookingPayload, JSON_START, JSON_END, parseBookingBlock } from "../src/Booking";
+import { BookingTools, IAppointmentsSheet } from "../src/mcp/BookingTools";
 import { createMcpServer } from "../src/mcp/server";
 import { COLUMN_KEYS, validBody } from "./fixtures";
 
@@ -37,11 +37,17 @@ class RecordingMailer {
   }
 }
 
-/* Stands in for Appointments.Worker, so the Sheets client is never built. */
-class StubSheet implements IAppointmentsReader {
+/* Stands in for Appointments.Worker, so the Sheets client is never built and
+   nothing in this file can reach Google. Appended rows are kept so a test can
+   assert on what a booking wrote. */
+class StubSheet implements IAppointmentsSheet {
+  public appended: IBookingPayload[] = [];
   constructor(private rows: IBookingRequest[]) {}
   public async listAppointments(): Promise<IBookingRequest[]> {
     return this.rows;
+  }
+  public async appendAppointment(payload: IBookingPayload): Promise<void> {
+    this.appended.push(payload);
   }
 }
 
@@ -148,9 +154,9 @@ describe("request_booking", () => {
     expect(mailer.sent[1]?.to).toBe(validBody.email);
   });
 
-  /* The load-bearing one. A booking made over MCP has to reach n8n in exactly
+  /* The load-bearing one. A booking made over MCP has to be recorded in exactly
      the shape a booking made on the site does. */
-  it("emits the sentinel block the n8n workflow parses", async () => {
+  it("emits the sentinel block a booking can be recovered from", async () => {
     await tools.requestBooking(validBody);
 
     const text = String(mailer.sent[0]?.text);
