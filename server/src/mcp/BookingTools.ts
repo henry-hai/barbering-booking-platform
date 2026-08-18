@@ -5,8 +5,8 @@
  * through the same Appointments.Worker the dashboard uses, and request_booking
  * runs the exact path POST /booking runs: the same honeypot check, the same
  * rate limiter, the same validateBooking, and the same Booking.Worker, which
- * emits the same owner notification carrying the same sentinel-wrapped A..K
- * JSON that the n8n workflow parses. A booking made through MCP is
+ * emits the same owner notification carrying the same sentinel-wrapped A..L
+ * JSON kept for recovery. A booking made through MCP is
  * indistinguishable downstream from one made on the website.
  *
  * The SDK is deliberately absent from this file. Keeping the tool logic free
@@ -20,8 +20,10 @@ import * as Booking from "../Booking";
 import { RateLimiter } from "../RateLimit";
 
 /* The slice of Appointments.Worker these tools need, so tests can supply a
-   stub instead of reaching Google. */
-export interface IAppointmentsReader {
+   stub instead of reaching Google. Both directions, because request_booking
+   writes a row and check_availability reads them: a seam that covered only
+   reads would leave the write reaching the real API from a test. */
+export interface IAppointmentsSheet extends Booking.IAppointmentLog {
   listAppointments(): Promise<Appointments.IBookingRequest[]>;
 }
 
@@ -29,7 +31,7 @@ export interface IBookingToolsOptions {
   /* Injected in tests to record messages instead of sending them. */
   mailer?: Booking.IMailer;
   /* Injected in tests to stand in for the Google Sheet. */
-  appointments?: IAppointmentsReader;
+  appointments?: IAppointmentsSheet;
   /* Same defaults as the HTTP endpoint. */
   perCallerLimit?: number;
   windowMs?: number;
@@ -98,7 +100,7 @@ export class BookingTools {
     );
   }
 
-  private reader(): IAppointmentsReader {
+  private sheet(): IAppointmentsSheet {
     return this.options.appointments ??
       new Appointments.Worker(this.serverInfo);
   }
@@ -118,7 +120,7 @@ export class BookingTools {
     const from = ISO_DATE.test(query.from ?? "") ? (query.from as string) : null;
     const to = ISO_DATE.test(query.to ?? "") ? (query.to as string) : null;
 
-    const requests = await this.reader().listAppointments();
+    const requests = await this.sheet().listAppointments();
 
     /* Collapse every preferred slot across every request onto its date. */
     const byDate = new Map<string, IRequestedDate>();
@@ -187,7 +189,8 @@ export class BookingTools {
       };
     }
 
-    const worker = new Booking.Worker(this.serverInfo, this.options.mailer);
+    const worker = new Booking.Worker(
+      this.serverInfo, this.options.mailer, this.sheet());
     const row = await worker.submit(validation.booking);
 
     return {

@@ -11,10 +11,10 @@
  * is not blocked.
  *
  * Nothing downstream changes. The owner notification still carries the same
- * sentinel-wrapped A..K JSON, still uses the "Appointment Request from"
- * subject prefix, and still lands in the mailbox the n8n Gmail trigger polls.
- * That trigger filters on the subject, not the sender, so switching the
- * transport is invisible to the workflow and to the sheet.
+ * sentinel-wrapped A..L JSON, still uses the "Appointment Request from"
+ * subject prefix, and still lands in the owner's mailbox. The sheet row is
+ * written before either email is attempted, so switching the transport is
+ * invisible to the booking log.
  *
  * This implements the same IMailer surface the SMTP worker does, so
  * Booking.Worker cannot tell them apart and every existing test still drives

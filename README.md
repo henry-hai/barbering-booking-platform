@@ -1,6 +1,6 @@
 # Barbering Booking Platform
 
-A full-stack barbering booking platform serving 300+ clients, built with Next.js, React, Node.js, Express, and TypeScript. The public site takes appointment requests through a server-side booking route, which sends the client a confirmation and the owner a notification that an n8n automation layer turns into a structured row in Google Sheets. A password-protected **appointments dashboard** reads that data back live via the Google Sheets API, and the same booking capabilities are exposed to MCP clients as tools.
+A full-stack barbering booking platform serving 300+ clients, built with Next.js, React, Node.js, Express, and TypeScript. The public site takes appointment requests through a server-side booking route, which records the request as a structured row in Google Sheets and sends the client a confirmation and the owner a notification. A password-protected **appointments dashboard** reads that data back live via the Google Sheets API, and the same booking capabilities are exposed to MCP clients as tools.
 
 ## Public site
 
@@ -32,7 +32,7 @@ The hero is a triptych on desktop and a single frame on mobile, rather than the 
 
 ## Appointments Dashboard
 
-A React dashboard reads booking requests **live** from the Google Sheet that the n8n workflow appends to, using the Google Sheets API authenticated with a read-only GCP service account. It shows headline stats and a card per request (client name, submitted time, preferred slots, and notes). The booking data stays in Google Sheets as the single source of truth, viewable on a phone, while the dashboard surfaces it inside the app. *(Client last names, phone numbers and email addresses redacted below.)*
+A React dashboard reads booking requests **live** from the Google Sheet the booking endpoint appends to, using the Google Sheets API authenticated with a GCP service account. It shows headline stats and a card per request (client name, submitted time, preferred slots, and notes). The booking data stays in Google Sheets as the single source of truth, viewable on a phone, while the dashboard surfaces it inside the app. *(Client last names, phone numbers and email addresses redacted below.)*
 
 It shows client names, phone numbers and email addresses, so it sits behind HTTP basic auth and is deployed privately. See [Deployment](#deployment) for where the password is set.
 
@@ -45,56 +45,53 @@ Browser  -->  Next.js site (web/) on Vercel
               Marketing pages, gallery, booking form
                     |
                     v
-              POST /booking  -->  Express API (server/) on Render  -->  Resend (HTTPS)
-                                                                          |
-                                        +-- confirmation email to the client
+              POST /booking  -->  Express API (server/) on Render
                                         |
-                                        +-- notification email to the owner
-                                                  |
-                                                  v
-                                      n8n: Gmail trigger -> JSON parse -> Google Sheets
-                                                                                |
-Browser  -->  Dashboard (client/)  -->  GET /appointments  ---------------------+
-              basic auth, same origin       read-only service account
-                                                  ^
-MCP client  -->  stdio  -->  MCP server  ---------+
+                                        +-- appends a row to Google Sheets
+                                        |            service account
+                                        |                    |
+                                        +-- Resend (HTTPS) --|-- confirmation to the client
+                                        |                    |
+                                        +-- Resend (HTTPS) --|-- notification to the owner
+                                                             |
+Browser  -->  Dashboard (client/)  -->  GET /appointments  ---+
+              basic auth, same origin                        |
+                                                             |
+MCP client  -->  stdio  -->  MCP server  ---------------------+
                              check_availability, request_booking
 ```
 
 **web/** -- The barbering website. Next.js App Router with TypeScript and Tailwind, statically generated with Open Graph metadata and LocalBusiness JSON-LD. The gallery is a tabbed React component using `next/image`; the booking form POSTs to the Express API, whose origin is fixed at build time by `NEXT_PUBLIC_API_BASE_URL`.
 
-**server/** -- RESTful API built with Node.js and Express. Handles the public booking endpoint, reads booking data from Google Sheets via a read-only service account, serves the built dashboard, and hosts the MCP server. It splits into a public zone (`POST /booking` and `/healthz`) and a private one behind basic auth (everything else).
+**server/** -- RESTful API built with Node.js and Express. Handles the public booking endpoint, reads and writes booking data in Google Sheets via a service account, serves the built dashboard, and hosts the MCP server. It splits into a public zone (`POST /booking` and `/healthz`) and a private one behind basic auth (everything else).
 
 **client/** -- React SPA with Material-UI components and CSS Grid layout, showing the **appointments dashboard**: booking requests and stats from the Google Sheets API. Talks to the server via Axios on the same origin.
 
 The repo also carries a Gmail mail client -- mailboxes, messages and NeDB-backed contact CRUD, across `client/src/code/components/` and the server's `IMAP.ts`, `SMTP.ts` and `contacts.ts`. It is **not wired into the running app**. `AppShell.tsx` no longer imports it, so webpack leaves it out of the bundle entirely; the code is kept because it is worth preserving, not because it runs. Its Express endpoints are still mounted, behind the same basic auth.
 
-**automation/** -- The exported n8n workflow. See [The booking pipeline](#the-booking-pipeline) below.
-
 ## The booking pipeline
 
-A booking travels through four hops, and the contract between them is deliberately narrow.
+A booking does three independent things, and none of them can take down the others.
 
 1. The form in `web/components/BookingForm.tsx` POSTs JSON to `POST /booking`.
-2. `server/src/Booking.ts` revalidates every field, then sends two emails, over Resend's HTTPS API in production and Gmail SMTP locally. See [Why the email goes over HTTPS](#why-the-email-goes-over-https).
-3. The **owner notification**'s plain-text part carries an 11-field JSON object between two fixed sentinels:
+2. `server/src/Booking.ts` revalidates every field, then checks it is not the same request arriving twice.
+3. `Appointments.buildSheetRow` turns it into twelve cells, inserted directly under the sheet's header.
+4. Two emails go out, over Resend's HTTPS API in production and Gmail SMTP locally. See [Why the email goes over HTTPS](#why-the-email-goes-over-https).
 
-   ```
-   ---BOOKING_JSON_START---
-   { "name": ..., "date": ..., "time": ..., ... }
-   ---BOOKING_JSON_END---
-   ```
+The twelve keys of `IBookingPayload` map one-to-one, in order, onto sheet columns **A..L**, and empty fields are the string `"N/A"`. `Appointments.listAppointments` reads that exact layout back for the dashboard, so the writer and the reader live in one file and `server/tests/sheet-contract.test.ts` closes the loop by writing a booking and reading it back.
 
-4. The n8n workflow's Code node extracts that block and runs a single `JSON.parse` on it, then appends the result as a row.
+Three consequences worth knowing:
 
-The eleven JSON keys map one-to-one, in order, onto sheet columns **A..K**, and empty fields are the string `"N/A"`. `server/src/Appointments.ts` reads that exact layout back for the dashboard.
+- **The key order is load-bearing.** Every row in the sheet since May 2024 is in that shape, so reordering a column means rewriting all of them. A new column may be appended, which is how `email` reached column L.
+- **A failed step does not fail the booking.** A request that reached the sheet but could not send its confirmation still answers `ok`, because it happened. Answering with an error would only get the client to submit it again and put a second identical row in the sheet. Only a booking that reached neither the sheet nor the owner's mailbox returns 502, and then a retry is the right thing.
+- **Identical resubmissions inside ten minutes are collapsed.** `server/src/Duplicates.ts` fingerprints the booking itself rather than the caller, so a double-tap writes one row while a client who changes a time and resubmits gets a second.
+- **The sheet is newest-first.** Each booking is inserted under the header rather than appended, so row order is display order and the dashboard does no reordering. It matters because the sheet is not just a database: it is what gets opened on a phone between clients, and appending would bury today's request under two years of history.
 
-Two consequences worth knowing:
+### It used to run on n8n
 
-- **The HTML part of the notification is presentational only.** Nothing parses it, so it can be redesigned freely without touching the workflow or the sheet.
-- **The key order and the `"N/A"` convention are load-bearing.** Changing either means changing the sheet and `Appointments.ts` together. `server/tests/n8n-contract.test.ts` runs the workflow's own `jsCode` against real notification bodies to catch drift.
+Rows were written by a hosted n8n workflow: a Gmail trigger polled the owner's mailbox, a Code node pulled a JSON block out of the notification, and a Sheets node appended it. That worked, but it sent data through email that the server already had in hand, and it meant the log only filled in while a workflow was running somewhere. Setting the project up on a new machine meant reauthorising two Google OAuth grants before bookings would record at all.
 
-The Gmail trigger filters on the subject prefix `Appointment Request from`, so that must stay too.
+The server appends the row itself now. The JSON block is still in the plain-text part of the owner notification, and nothing parses it automatically. It is kept because it is the only machine-readable copy of a request outside the sheet, so an append that fails can be recovered from the mailbox rather than retyped.
 
 ### Why the email goes over HTTPS
 
@@ -104,7 +101,7 @@ Render's free tier blocks outbound connections on the SMTP ports (25, 465 and 58
 
 `server/src/ResendMailer.ts` implements the same `IMailer` interface as the SMTP worker, and `createMailer` picks between them: Resend when `RESEND_API_KEY` and `MAIL_FROM` are set, SMTP otherwise. A development machine therefore needs no account anywhere, and `Booking.Worker` cannot tell the two apart.
 
-**The pipeline does not notice.** The owner notification keeps the `Appointment Request from` subject prefix, keeps the sentinel-wrapped A..K block, and still arrives in the mailbox the n8n Gmail trigger polls. That trigger matches on subject rather than sender, which is what makes the transport swappable.
+**Nothing downstream notices.** The owner notification keeps the `Appointment Request from` subject prefix and the sentinel-wrapped A..L block whichever transport carries it, and the sheet row is written before either email is attempted, so the log does not depend on delivery at all.
 
 One diagnosis worth recording, because it looked like the same bug and was not: before the port block was identified, sends were failing with `ENETUNREACH` on an IPv6 address. Render's containers have no IPv6 route, and Node was resolving `smtp.gmail.com` to its AAAA record. `family: 4` in `SMTP.ts` pins the connection to IPv4 and fixed that, which is what made the underlying port block visible.
 
@@ -119,11 +116,11 @@ The booking system is also exposed over the [Model Context Protocol](https://mod
 | `check_availability` | Lists the dates clients have already requested, with a count and the availability notes for each. Optional `from` and `to` bounds, `YYYY-MM-DD`. Reads the same Google Sheet the dashboard reads. |
 | `request_booking` | Submits an appointment request. Takes the same fields as the website form, including `policiesAccepted`. |
 
-A booking made through `request_booking` **travels the identical path as one made on the website**. It runs the same `validateBooking`, the same honeypot check and the same rate limiter, then the same `Booking.Worker`, which sends the same two emails. The owner notification carries the same sentinel-wrapped A..K JSON, so n8n appends the row without knowing or caring where the request came from. `server/src/mcp/BookingTools.ts` calls that existing code rather than restating any of it.
+A booking made through `request_booking` **travels the identical path as one made on the website**. It runs the same `validateBooking`, the same honeypot check and the same rate limiter, then the same `Booking.Worker`, which sends the same two emails. It writes the same row to the same sheet, so a request made over MCP is indistinguishable from one made on the website. `server/src/mcp/BookingTools.ts` calls that existing code rather than restating any of it.
 
 Read `check_availability` for what it is: the sheet holds *requests*, not a confirmed calendar. A date listed there has been asked for, which is not the same as being taken, and a date missing from it is not a guarantee that it is free.
 
-Running costs effectively nothing and it is safe to leave running. It touches only the Google Sheets API on a read-only service account and the Gmail account the site already sends through. No model is called and no paid API is involved.
+Running costs effectively nothing and it is safe to leave running. It touches only the Google Sheets API on a service account and the Gmail account the site already sends through. No model is called and no paid API is involved.
 
 ### Connecting a client
 
@@ -173,8 +170,7 @@ Credentials come from `server/serverInfo.json` and `server/serviceAccount.json`,
 | imapflow | Inbound email over Gmail IMAP |
 | NeDB | Embedded document database for contacts |
 | Axios | HTTP client for API communication |
-| n8n | Automation workflow: Gmail trigger → JSON parse → Google Sheets |
-| Google Sheets API | Reads booking data into the dashboard via a read-only GCP service account |
+| Google Sheets API | Stores every booking request, read and written by a GCP service account |
 | Vitest + Testing Library | Component, validation, auth and MCP tool tests |
 | Playwright | End-to-end booking path |
 | MCP TypeScript SDK | Booking exposed as tools over stdio (`@modelcontextprotocol/sdk`, pinned) |
@@ -238,7 +234,7 @@ npm test           # web + server unit tests
 npm run test:e2e   # Playwright booking path
 ```
 
-**123 server tests, 38 web tests, 6 Playwright.** Everything runs with no secrets: the end-to-end suite mounts the real booking handler with a recording mailer, the MCP tests stub the Sheets client, and the Resend tests stub `fetch`. No test reaches Gmail, Resend, Sheets or n8n. CI runs all three suites on every push and pull request.
+**145 server tests, 38 web tests, 8 Playwright.** Everything runs with no secrets: the end-to-end suite mounts the real booking handler with a recording mailer, every test that submits a booking injects a recording sheet, and the Resend tests stub `fetch`. No test reaches Gmail, Resend or Sheets. CI runs all three suites on every push and pull request.
 
 Several of them exist because a bug reached production first, and each says so in its own header: `cors.test.ts` for the preflight that returned 401, `anchors.test.tsx` for the hero link that pointed at nothing, and the contract tests inside `resend.test.ts` for the sheet layout surviving a change of email transport.
 
@@ -268,7 +264,7 @@ Set under *Dashboard -> the service -> Environment*:
 | Variable | Value |
 |---|---|
 | `SERVER_INFO_JSON` | Entire contents of `server/serverInfo.json`, as one line |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Entire contents of `serviceAccount.json`, as one line |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Entire contents of `serviceAccount.json`, as one line. The sheet must be shared with that account's address as an **Editor**, since the server writes rows as well as reading them |
 | `DASHBOARD_USER` | Whatever username you want for the dashboard |
 | `DASHBOARD_PASSWORD` | **The dashboard password. This is where you set it.** |
 | `RESEND_API_KEY` | Resend key with sending access |
@@ -315,8 +311,6 @@ barber-booking/
 ├── render.yaml             # Render blueprint: API + dashboard, one free service
 ├── .github/workflows/ci.yml
 ├── screenshots/            # README images (static site + dashboard)
-├── automation/
-│   └── Barber_Log.json     # Exported n8n workflow (Gmail -> JSON parse -> Sheets)
 ├── web/                    # Next.js public site
 │   ├── app/
 │   │   ├── layout.tsx      # Root layout, metadata and Open Graph tags
@@ -356,10 +350,11 @@ barber-booking/
 │   │   ├── main.ts         # Express app and route definitions
 │   │   ├── Auth.ts         # Basic-auth guard for the private zone
 │   │   ├── Credentials.ts  # Writes credential files from the environment
-│   │   ├── Booking.ts      # Booking validation, A..K payload, both emails
+│   │   ├── Booking.ts      # Booking validation, A..L payload, both emails
 │   │   ├── BookingEmails.ts# HTML and plain-text email templates
 │   │   ├── RateLimit.ts    # In-memory rate limiter
-│   │   ├── Appointments.ts # Google Sheets reader (service account)
+│   │   ├── Duplicates.ts   # Collapses a booking submitted twice
+│   │   ├── Appointments.ts # Google Sheets reader and writer (service account)
 │   │   ├── ResendMailer.ts # Booking email over HTTPS (production)
 │   │   ├── SMTP.ts         # NodeMailer email sending (local fallback)
 │   │   ├── IMAP.ts         # IMAP email reading (mail client, unwired)
@@ -369,10 +364,14 @@ barber-booking/
 │   │       ├── main.ts         # MCP entry point (stdio)
 │   │       ├── server.ts       # Tool registration and schemas
 │   │       └── BookingTools.ts # Tool behaviour, no SDK, calls existing code
+│   ├── scripts/
+│   │   ├── backfill-emailjs.mjs    # One-off import of the pre-2026 booking history
+│   │   └── reverse-sheet-order.mjs # One-off flip to newest-first
 │   ├── tests/
 │   │   ├── booking.test.ts
 │   │   ├── emails.test.ts
-│   │   ├── n8n-contract.test.ts
+│   │   ├── sheet-contract.test.ts
+│   │   ├── duplicates.test.ts
 │   │   ├── ratelimit.test.ts
 │   │   ├── auth.test.ts
 │   │   ├── cors.test.ts

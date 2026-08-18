@@ -209,12 +209,13 @@ Milpitas & Irvine, CA
 /*
  * Owner notification.
  *
- * The subject line must keep starting with "Appointment Request from" -- the
- * n8n Gmail trigger filters on that string.
+ * The subject line keeps starting with "Appointment Request from". Every
+ * request going back to 2024 is filed under it, so it is what makes the mailbox
+ * searchable as a history.
  *
- * The plain-text part ends with the sentinel-wrapped JSON payload that the
- * workflow parses. Everything above it in the text part, and the whole HTML
- * part, is for reading only.
+ * The plain-text part ends with the sentinel-wrapped JSON payload, which is the
+ * only machine-readable copy of a request outside the sheet. Everything above
+ * it, and the whole HTML part, is for reading.
  */
 export function renderOwnerNotification(
   payload: IBookingPayload,
@@ -257,7 +258,8 @@ ${slotLines(payload)}
 HAIRCUT / COMMENTS
   ${display(payload.description)}
 
-The block below is read by the Barber Log automation. Leave it alone.
+The block below is this request in machine-readable form, kept so the row can
+be rebuilt if it never reached the sheet. Leave it alone.
 
 ${serializeBookingBlock(payload)}
 `;

@@ -1,9 +1,9 @@
 /*
- * Booking validation, the A..K payload, and the sentinel-wrapped serializer.
+ * Booking validation, the A..L payload, and the sentinel-wrapped serializer.
  *
  * The serializer tests are the important ones: that block is a data contract
- * with the n8n workflow, and tests/n8n-contract.test.ts runs the workflow's own
- * code against it.
+ * for recovering a request that never reached the sheet, and
+ * tests/sheet-contract.test.ts covers the round trip.
  */
 
 import { describe, expect, it } from "vitest";
@@ -139,7 +139,7 @@ describe("formatSubmittedAt", () => {
 
 describe("buildBookingPayload", () => {
 
-  it("emits exactly the eleven sheet columns in A..K order", () => {
+  it("emits exactly the twelve sheet columns in A..L order", () => {
     const payload = buildBookingPayload(validBooking, SUBMITTED_AT);
     expect(Object.keys(payload)).toEqual(COLUMN_KEYS);
   });
@@ -219,7 +219,7 @@ describe("serializeBookingBlock", () => {
 
   it("uses the exact sentinel strings", () => {
     /* Hard-coded rather than referencing the constants: if either string
-       changes, the n8n Code node must change with it, and this should fail. */
+       changes, every row already in the sheet is wrong, and this should fail. */
     expect(JSON_START).toBe("---BOOKING_JSON_START---");
     expect(JSON_END).toBe("---BOOKING_JSON_END---");
   });

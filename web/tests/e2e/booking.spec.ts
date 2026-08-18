@@ -5,7 +5,7 @@
  * SMTP is mocked at the mailer seam by the harness in
  * server/tests/e2e-harness.mjs, which mounts the production POST /booking
  * handler with a recorder in place of nodemailer. Nothing here touches Gmail,
- * Sheets or n8n, so it runs in CI with no secrets.
+ * Sheets, so it runs in CI with no secrets.
  */
 
 import { expect, test, type Page } from "@playwright/test";
@@ -59,6 +59,12 @@ async function readOutbox(page: Page): Promise<ISentMessage[]> {
   return response.json();
 }
 
+async function readRows(page: Page): Promise<Record<string, string>[]> {
+  const response = await page.request.get(`${API_URL}/__rows`);
+  expect(response.ok()).toBe(true);
+  return response.json();
+}
+
 async function fillBookingForm(page: Page, overrides: Partial<typeof CLIENT> = {}) {
   const values = { ...CLIENT, ...overrides };
 
@@ -85,6 +91,40 @@ test.beforeEach(async ({ page }) => {
   await waitForHydration(page);
 });
 
+test("a booking is recorded as a sheet row before any email goes out", async ({ page }) => {
+  await fillBookingForm(page);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Request received")).toBeVisible();
+
+  const rows = await readRows(page);
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    name: CLIENT.name,
+    phone: CLIENT.phone,
+    date1: CLIENT.date1,
+    avail1: CLIENT.availability1,
+    description: CLIENT.description,
+    email: CLIENT.email
+  });
+});
+
+test("submitting the same form twice records one row", async ({ page }) => {
+  await fillBookingForm(page);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Request received")).toBeVisible();
+
+  /* Back to the form and send the identical request again, the way a client
+     who did not see the confirmation would. */
+  await page.goto("/");
+  await waitForHydration(page);
+  await fillBookingForm(page);
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Request received")).toBeVisible();
+
+  expect(await readRows(page)).toHaveLength(1);
+  expect(await readOutbox(page)).toHaveLength(2);
+});
+
 test("a booking dispatches both the owner notification and the client confirmation", async ({ page }) => {
   await fillBookingForm(page);
   await page.getByRole("button", { name: "Submit" }).click();
@@ -102,7 +142,7 @@ test("a booking dispatches both the owner notification and the client confirmati
   expect(notification, "owner notification was not dispatched").toBeDefined();
   expect(confirmation, "client confirmation was not dispatched").toBeDefined();
 
-  /* The subject the n8n Gmail trigger filters on. */
+  /* The subject every request is filed under in the owner's mailbox. */
   expect(notification!.subject).toBe(`Appointment Request from ${CLIENT.name}`);
   expect(notification!.replyTo).toBe(CLIENT.email);
 

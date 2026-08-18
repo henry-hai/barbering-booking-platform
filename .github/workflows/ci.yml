@@ -2,7 +2,7 @@ name: CI
 
 # Runs with no secrets. The end-to-end suite mounts the real booking handler
 # with a recording mailer in place of nodemailer (server/tests/e2e-harness.mjs),
-# so nothing here reaches Gmail, Google Sheets or n8n.
+# so nothing here reaches Gmail or Google Sheets.
 #
 # The server job's `npm test` covers the MCP tools too: server/tests/mcp.test.ts
 # drives both of them with a recording mailer and a stubbed sheet, including a

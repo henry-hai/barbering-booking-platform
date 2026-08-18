@@ -1,4 +1,6 @@
-import type { IValidatedBooking } from "../src/Booking";
+import type {
+  IAppointmentLog, IBookingPayload, IValidatedBooking
+} from "../src/Booking";
 
 /* 19:30 UTC is 12:30 PDT, which makes the America/Los_Angeles conversion in the
    timestamp visible rather than a no-op. */
@@ -45,3 +47,17 @@ export const singleSlotBooking: IValidatedBooking = {
   ...validBooking,
   date2: "", availability2: "", date3: "", availability3: ""
 };
+
+/*
+ * Records rows instead of writing them.
+ *
+ * Every test that submits a booking passes one of these in. Without it a test
+ * builds the real Sheets client and, if the fixture happens to carry a sheets
+ * block, sends a request to Google from the suite.
+ */
+export class RecordingLog implements IAppointmentLog {
+  public rows: IBookingPayload[] = [];
+  public async appendAppointment(payload: IBookingPayload): Promise<void> {
+    this.rows.push(payload);
+  }
+}

@@ -6,7 +6,7 @@
  * hosted, and listens on no port.
  *
  * Cost is effectively zero and it is safe to leave running. The only things it
- * touches are the Google Sheets API on a read-only service account and the
+ * touches are the Google Sheets API on a service account and the
  * same Gmail SMTP account the site already sends through. No model is called
  * and no paid API is involved.
  *
@@ -73,7 +73,7 @@ export function createMcpServer(
       description:
         "Submits an appointment request through the identical validated path " +
         "the website form uses. On success the client receives a confirmation " +
-        "email, the owner receives a notification, and the n8n workflow " +
+        "email, the owner receives a notification, and the server " +
         "appends the request to the booking sheet. Every field is revalidated " +
         "server side, so invalid input is rejected here exactly as it would be " +
         "on the site.",

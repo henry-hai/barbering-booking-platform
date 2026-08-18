@@ -9,25 +9,23 @@
  *
  * THE SHEET CONTRACT
  * ------------------
- * The owner notification's plain-text part carries an IBookingPayload as JSON
- * between two fixed sentinels. The n8n "Barber Log" workflow extracts the block
- * and runs a single JSON.parse on it.
- *
  * The twelve keys of IBookingPayload map one-to-one, in declaration order, onto
- * columns A..L of the booking sheet, and empty values are the string "N/A" --
- * both of which server/src/Appointments.ts reads back. Do not reorder, rename,
- * or remove keys, and do not change the "N/A" convention, without changing the
- * sheet and Appointments.ts to match.
+ * columns A..L of the booking sheet. Appointments.buildSheetRow() turns them
+ * into the row and Appointments.listAppointments() reads them back by index, so
+ * a key cannot be reordered, renamed or removed without rewriting every row the
+ * sheet already holds.
  *
- * A new key may be APPENDED. Doing so leaves every existing column untouched,
- * so a sheet or workflow that has not been updated keeps working and simply
- * sees an empty column. That is how `email` reached column L: it was collected
- * from the start for the client confirmation, but lived only in the human
- * readable parts of the notification, which left the dashboard unable to show
- * the one field a client is actually reached by.
+ * A new key may be APPENDED, which leaves every existing column untouched and
+ * shows up as an empty cell on older rows. That is how `email` reached column
+ * L: it was collected from the start for the client confirmation but lived only
+ * in the human-readable parts of the notification, which left the dashboard
+ * unable to show the one field a client is actually reached by.
  *
- * The HTML part is for human reading only. Nothing downstream parses it, so it
- * can be redesigned freely without touching the pipeline.
+ * The owner notification's plain-text part still ends with the same payload as
+ * JSON between two sentinels. Nothing parses it automatically any more. It is
+ * kept because it is the only machine-readable copy of a request outside the
+ * sheet, so if an append ever fails the row can be rebuilt from the mailbox
+ * instead of retyped.
  */
 
 import { Request, RequestHandler, Response } from "express";
@@ -35,6 +33,8 @@ import { SendMailOptions } from "nodemailer";
 import { IServerInfo } from "./ServerInfo";
 import * as SMTP from "./SMTP";
 import { RateLimiter } from "./RateLimit";
+import { DuplicateGuard } from "./Duplicates";
+import * as Appointments from "./Appointments";
 import * as ResendMailer from "./ResendMailer";
 import { readResendConfig } from "./ResendMailer";
 import {
@@ -42,8 +42,8 @@ import {
   renderOwnerNotification
 } from "./BookingEmails";
 
-/* Fixed sentinels bounding the JSON block. The n8n Code node splits on these
-   exact strings; changing either one requires updating that node. */
+/* Fixed sentinels bounding the JSON block in the owner notification, so the
+   payload can be found again in a mailbox full of prose. */
 export const JSON_START = "---BOOKING_JSON_START---";
 export const JSON_END = "---BOOKING_JSON_END---";
 
@@ -253,9 +253,9 @@ const orNA = (value: string): string => (value === "" ? NA : value);
 /*
  * Formats the submission time for sheet columns B and C.
  *
- * These two calls reproduce what the n8n Code node used to derive from the
- * email's own received date, down to the locale and options, so the sheet keeps
- * getting the same shape of value it always has.
+ * Pacific rather than the server's clock, because a booking that arrives at
+ * 11pm in Milpitas should not be logged as the next day. The locale and options
+ * are fixed so every row in the sheet, going back to 2024, reads the same.
  */
 export function formatSubmittedAt(when: Date): { date: string, time: string } {
   return {
@@ -268,7 +268,7 @@ export function formatSubmittedAt(when: Date): { date: string, time: string } {
   };
 }
 
-/* Builds the eleven-column payload. Key order here is column order A..K. */
+/* Builds the twelve-column payload. Key order here is column order A..L. */
 export function buildBookingPayload(
   booking: IValidatedBooking,
   when: Date = new Date()
@@ -292,7 +292,7 @@ export function buildBookingPayload(
 }
 
 /*
- * Wraps the payload in the sentinels the n8n Code node splits on.
+ * Wraps the payload in the sentinels, for the copy in the owner email.
  *
  * Pretty-printed rather than minified: it keeps every line short, so no mail
  * transport along the way has a reason to fold one, and it stays readable if
@@ -302,8 +302,9 @@ export function serializeBookingBlock(payload: IBookingPayload): string {
   return `${JSON_START}\n${JSON.stringify(payload, null, 2)}\n${JSON_END}`;
 }
 
-/* Reads a payload back out of an email body. This is the TypeScript twin of
-   the n8n Code node, kept here so the round trip can be tested. */
+/* Reads a payload back out of an email body. Nothing calls this on the request
+   path: it exists so the round trip is testable, and so a request can be
+   recovered from the mailbox if it never reached the sheet. */
 export function parseBookingBlock(body: string): IBookingPayload {
   const start = body.indexOf(JSON_START);
   if (start === -1) {
@@ -320,6 +321,17 @@ export function parseBookingBlock(body: string): IBookingPayload {
 }
 
 /* Minimal mailer surface, so tests can record messages instead of sending. */
+/*
+ * The booking log, narrowed to the one call this module makes.
+ *
+ * Appointments.Worker satisfies it. Naming the seam here rather than importing
+ * the class means the tests can hand in a recorder, and Booking.ts never has to
+ * know that the log happens to be a Google Sheet.
+ */
+export interface IAppointmentLog {
+  appendAppointment(payload: IBookingPayload): Promise<void>;
+}
+
 export interface IMailer {
   sendMessage(options: SendMailOptions): Promise<string>;
 }
@@ -350,43 +362,83 @@ export class Worker {
 
   private mailer: IMailer;
   private ownerAddress: string;
+  private log: IAppointmentLog;
 
-  /* Owner notifications go to the same Gmail account that sends them, which is
-     the mailbox the n8n Gmail trigger polls. Note that the sender may be a
-     different address entirely when sending through Resend; the trigger
-     filters on the subject prefix, not the sender, so that does not matter. */
-  constructor(inServerInfo: IServerInfo, inMailer?: IMailer) {
+  /* Owner notifications go to the same Gmail account that sends them, so the
+     whole history of requests stays searchable in one mailbox. The sender may
+     be a different address entirely when going out through Resend. */
+  constructor(
+    inServerInfo: IServerInfo,
+    inMailer?: IMailer,
+    inLog?: IAppointmentLog
+  ) {
     this.mailer = inMailer ?? createMailer(inServerInfo);
     this.ownerAddress = inServerInfo.smtp.auth.user;
+    this.log = inLog ?? new Appointments.Worker(inServerInfo);
   }
 
-  /* Sends both emails for one booking and returns the payload that went out.
-     The owner notification is sent first: it is the one the sheet depends on,
-     so if the second send fails the booking is still recorded. */
+  /*
+   * Records one booking and sends the two emails for it.
+   *
+   * Three independent deliveries, and no one of them is allowed to take down
+   * the others. The sheet goes first because it is what Henry works from, and
+   * it no longer depends on an email arriving anywhere.
+   *
+   * Only a booking that left no trace at all throws. That distinction is the
+   * whole point: a request that reached the sheet but failed to send the
+   * confirmation has been recorded, and answering the client with an error
+   * would have them submit again and put a second identical row in the sheet.
+   * A booking is lost only if both the sheet and the owner notification failed,
+   * and then the client should retry, because nothing anywhere knows about it.
+   */
   public async submit(
     booking: IValidatedBooking,
     when: Date = new Date()
   ): Promise<IBookingPayload> {
     const payload = buildBookingPayload(booking, when);
 
+    const attempt = async (what: string, action: () => Promise<void>): Promise<boolean> => {
+      try {
+        await action();
+        return true;
+      } catch (inError) {
+        console.error(`Booking ${what} failed:`, inError);
+        return false;
+      }
+    };
+
+    const logged = await attempt("sheet append", async () => {
+      await this.log.appendAppointment(payload);
+    });
+
+    /* The owner notification carries the whole request, JSON block included, so
+       while it is not the log it is enough to rebuild the row by hand. */
     const notification = renderOwnerNotification(payload, booking.email);
-    await this.mailer.sendMessage({
-      from: this.ownerAddress,
-      to: this.ownerAddress,
-      replyTo: booking.email,
-      subject: notification.subject,
-      text: notification.text,
-      html: notification.html
+    const notified = await attempt("owner notification", async () => {
+      await this.mailer.sendMessage({
+        from: this.ownerAddress,
+        to: this.ownerAddress,
+        replyTo: booking.email,
+        subject: notification.subject,
+        text: notification.text,
+        html: notification.html
+      });
     });
 
     const confirmation = renderClientConfirmation(payload);
-    await this.mailer.sendMessage({
-      from: this.ownerAddress,
-      to: booking.email,
-      subject: confirmation.subject,
-      text: confirmation.text,
-      html: confirmation.html
+    await attempt("client confirmation", async () => {
+      await this.mailer.sendMessage({
+        from: this.ownerAddress,
+        to: booking.email,
+        subject: confirmation.subject,
+        text: confirmation.text,
+        html: confirmation.html
+      });
     });
+
+    if (!logged && !notified) {
+      throw new Error("Booking reached neither the sheet nor the owner mailbox.");
+    }
 
     return payload;
   }
@@ -400,8 +452,15 @@ export interface IBookingHandlerOptions {
   /* Requests allowed across all callers per window, as a flood backstop. */
   globalLimit?: number;
   windowMs?: number;
+  /* How long an identical resubmission is treated as the same booking. */
+  duplicateWindowMs?: number;
+  /* Supplied when the caller needs to reset it, as the e2e harness does
+     between tests. Otherwise the handler owns one for its own lifetime. */
+  duplicates?: DuplicateGuard;
   /* Injected in tests to record messages instead of sending them. */
   mailer?: IMailer;
+  /* Injected in tests to record sheet rows instead of writing them. */
+  log?: IAppointmentLog;
 }
 
 /*
@@ -422,6 +481,10 @@ export function createBookingHandler(
      send quota. */
   const perClient = new RateLimiter(options.perClientLimit ?? 5, windowMs);
   const overall = new RateLimiter(options.globalLimit ?? 60, windowMs);
+  /* Separate from the rate limiter, which counts requests from an address. This
+     matches on the booking itself, so it catches a double-tap and nothing else. */
+  const duplicates = options.duplicates ??
+    new DuplicateGuard(options.duplicateWindowMs ?? 10 * 60 * 1000);
 
   return async (inRequest: Request, inResponse: Response): Promise<void> => {
     const body: IBookingRequestBody = inRequest.body ?? {};
@@ -459,11 +522,22 @@ export function createBookingHandler(
       return;
     }
 
+    /* A second identical submission is the same person tapping twice or
+       reloading, so answer as though it worked. Telling them it failed would
+       only get a third. Anything they changed makes a new fingerprint and goes
+       through normally. */
+    if (duplicates.isRepeat(validation.booking)) {
+      inResponse.json({ ok: true });
+      return;
+    }
+
     try {
-      const worker = new Worker(inServerInfo, options.mailer);
+      const worker = new Worker(inServerInfo, options.mailer, options.log);
       await worker.submit(validation.booking);
       inResponse.json({ ok: true });
     } catch (inError) {
+      /* Let the client retry: this booking never made it out. */
+      duplicates.forget(validation.booking);
       console.error("POST /booking error:", inError);
       inResponse.status(502).json({
         ok: false,
