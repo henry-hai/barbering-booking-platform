@@ -14,7 +14,7 @@ export const site = {
   ogImage: "/img/barbershop-interior.jpg",
   instagram: "https://www.instagram.com/henryhai_",
   linkedin: "https://www.linkedin.com/in/henry-hai-nguyen",
-  phone: "408-858-707",
+  phone: "408-858-7047",
   foundedYear: 2013
 } as const;
 
