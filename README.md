@@ -32,9 +32,9 @@ The hero is a triptych on desktop and a single frame on mobile, rather than the 
 
 ## Appointments Dashboard
 
-A React dashboard reads booking requests **live** from the Google Sheet that the n8n workflow appends to, using the Google Sheets API authenticated with a read-only GCP service account. It shows headline stats and a card per request (client name, submitted time, preferred slots, and notes). The booking data stays in Google Sheets as the single source of truth, viewable on a phone, while the dashboard surfaces it inside the app. *(Client phone numbers and last names redacted below.)*
+A React dashboard reads booking requests **live** from the Google Sheet that the n8n workflow appends to, using the Google Sheets API authenticated with a read-only GCP service account. It shows headline stats and a card per request (client name, submitted time, preferred slots, and notes). The booking data stays in Google Sheets as the single source of truth, viewable on a phone, while the dashboard surfaces it inside the app. *(Client last names, phone numbers and email addresses redacted below.)*
 
-It shows client names and phone numbers, so it sits behind HTTP basic auth and is deployed privately. See [Deployment](#deployment) for where the password is set.
+It shows client names, phone numbers and email addresses, so it sits behind HTTP basic auth and is deployed privately. See [Deployment](#deployment) for where the password is set.
 
 ![Appointments dashboard](screenshots/dashboard.png)
 
