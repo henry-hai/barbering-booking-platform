@@ -8,6 +8,11 @@ dist/
 serverInfo.json
 serviceAccount.json
 
+# Client data the one-off scripts pull out of the sheet. Both of them write
+# next to themselves by default, and neither output belongs in the repo.
+server/scripts/*.json
+server/scripts/*.tsv
+
 # OS files
 Thumbs.db
 .DS_Store
